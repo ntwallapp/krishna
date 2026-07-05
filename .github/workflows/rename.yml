@@ -1,0 +1,45 @@
+name: Rename Images
+on:
+  push:
+    paths:
+      - '**.webp'
+      - '**.jpg'
+      - '**.png'
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Rename to next number
+        run: |
+          get_next() {
+            n=1
+            while [ -f "${n}.webp" ] || echo "$used" | grep -q "^$n$"; do
+              n=$((n + 1))
+            done
+            used="$used"$'\n'"$n"
+            echo $n
+          }
+          
+          used=""
+          
+          for f in *.webp; do
+            if [[ "$f" != [0-9]*.webp ]]; then
+              next=$(get_next)
+              git mv "$f" "${next}.webp"
+            fi
+          done
+
+      - name: Commit
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          git add .
+          git commit -m "Auto renamed" || exit 0
+          git push
